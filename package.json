@@ -152,7 +152,6 @@
     "react-image-crop": "^8.3.0",
     "reconnecting-websocket": "^4.4.0",
     "redis": "^3.0.2",
-    "rehype-autolink-headings": "^5.0.1",
     "rehype-react": "^6.2.0",
     "rehype-slug": "^4.0.1",
     "rehype-toc": "^3.0.2",

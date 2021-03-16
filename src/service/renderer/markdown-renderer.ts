@@ -29,12 +29,12 @@ import breaks from 'remark-breaks';
 import remark2rehype from 'remark-rehype';
 import slug from 'rehype-slug';
 import toc, { HtmlElementNode } from 'rehype-toc';
-import autoLinkHeadings from 'rehype-autolink-headings';
 import rehype2react from 'rehype-react';
 
 import NextLink from '~/components/rehype2react/NextLink';
 import { RendererSettings } from '~/interfaces/renderer';
 import loggerFactory from '~/utils/logger';
+import { Header1, Header2, Header3 } from '~/components/rehype2react/Header';
 
 const logger = loggerFactory('growi:service:MarkdownRenderer');
 
@@ -93,6 +93,9 @@ export default class MarkdownRenderer {
       createElement: React.createElement,
       components: {
         a: NextLink,
+        h1: Header1,
+        h2: Header2,
+        h3: Header3,
       },
     });
   }
@@ -259,9 +262,6 @@ export const generateViewRenderer = (rendererSettings: RendererSettings, storeTo
   renderer.rehypePlugins.push([toc, {
     headings: ['h1', 'h2', 'h3'],
     customizeTOC: storeTocNode,
-  }]);
-  renderer.rehypePlugins.push([autoLinkHeadings, {
-    behavior: 'append',
   }]);
   renderer.init();
 

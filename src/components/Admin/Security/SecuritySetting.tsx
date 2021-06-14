@@ -11,18 +11,20 @@ import { useSecuritySettingGeneralSWR } from '~/stores/admin';
 import { apiv3Put } from '~/utils/apiv3-client';
 
 
+const sessionMaxAge = 'sessionMaxAge';
 const restrictGuestMode = 'restrictGuestMode';
 const pageCompleteDeletionAuthority = 'pageCompleteDeletionAuthority';
 const hideRestrictedByOwner = 'hideRestrictedByOwner';
 const hideRestrictedByGroup = 'hideRestrictedByGroup';
 const wikiMode = 'wikiMode';
 
-type FormValues ={
-[restrictGuestMode]: string,
-[pageCompleteDeletionAuthority]: string,
-[hideRestrictedByOwner]: string,
-[hideRestrictedByGroup]: string,
-[wikiMode]: string,
+type FormValues = {
+  [sessionMaxAge]: string,
+  [restrictGuestMode]: string,
+  [pageCompleteDeletionAuthority]: string,
+  [hideRestrictedByOwner]: string,
+  [hideRestrictedByGroup]: string,
+  [wikiMode]: string,
 };
 
 
@@ -33,6 +35,7 @@ export const SecuritySetting: FC = () => {
     register, control, handleSubmit, setValue, watch,
   } = useForm({
     defaultValues: {
+      [sessionMaxAge]: data?.[sessionMaxAge] || null,
       [restrictGuestMode]: data?.[restrictGuestMode] || null,
       [pageCompleteDeletionAuthority]: data?.[pageCompleteDeletionAuthority] || null,
       [hideRestrictedByOwner]: data?.[hideRestrictedByOwner],
@@ -46,6 +49,7 @@ export const SecuritySetting: FC = () => {
   const submitHandler: SubmitHandler<FormValues> = async(formValues) => {
     try {
       await apiv3Put('/security-setting/general-setting', {
+        [sessionMaxAge]: formValues[sessionMaxAge],
         [restrictGuestMode]: formValues[restrictGuestMode],
         [pageCompleteDeletionAuthority]: formValues[pageCompleteDeletionAuthority],
         [hideRestrictedByOwner]: formValues[hideRestrictedByOwner],
@@ -60,12 +64,14 @@ export const SecuritySetting: FC = () => {
   };
 
   useEffect(() => {
+    setValue(sessionMaxAge, data?.[sessionMaxAge]);
     setValue(restrictGuestMode, data?.[restrictGuestMode]);
     setValue(pageCompleteDeletionAuthority, data?.[pageCompleteDeletionAuthority]);
     setValue(hideRestrictedByOwner, data?.[hideRestrictedByOwner]);
     setValue(hideRestrictedByGroup, data?.[hideRestrictedByGroup]);
     setValue(wikiMode, data?.[wikiMode]);
   }, [
+    data?.[sessionMaxAge],
     data?.[restrictGuestMode],
     data?.[pageCompleteDeletionAuthority],
     data?.[hideRestrictedByOwner],
@@ -79,14 +85,14 @@ export const SecuritySetting: FC = () => {
         <h2 className="alert-anchor border-bottom">
           {t('security_settings')}
         </h2>
+
         {error != null && (
         <div className="alert alert-danger">
           <p>{t('Error occurred')} : {error}</p>
         </div>
         )}
-        <h4 className="mt-4">
-          { t('page_list_and_search_results') }
-        </h4>
+
+        <h4 className="mt-4">{ t('security_setting.page_list_and_search_results') }</h4>
         <table className="table table-bordered col-lg-9 mb-5">
           <thead>
             <tr>
@@ -139,7 +145,8 @@ export const SecuritySetting: FC = () => {
             </tr>
           </tbody>
         </table>
-        <h4>{t('page_access_and_delete_rights')}</h4>
+
+        <h4>{t('security_setting.page_access_and_delete_rights')}</h4>
         <div className="row mb-4">
           <div className="col-md-3 text-md-right py-2">
             <strong>{t('security_setting.Guest Users Access')}</strong>
@@ -243,6 +250,28 @@ export const SecuritySetting: FC = () => {
             </div>
           </div>
         </div>
+
+        <h4>{t('security_setting.session')}</h4>
+        <div className="form-group row">
+          <label className="text-left text-md-right col-md-3 col-form-label">{t('security_setting.max_age')}</label>
+          <div className="col-md-6">
+            <input
+              className="form-control col-md-3"
+              name={sessionMaxAge}
+              type="text"
+              placeholder="2592000000"
+              ref={register}
+            />
+            {/* eslint-disable-next-line react/no-danger */}
+            <p className="form-text text-muted" dangerouslySetInnerHTML={{ __html: t('security_setting.max_age_desc') }} />
+            <p className="card well">
+              <span className="text-warning">
+                <i className="icon-info"></i> {t('security_setting.max_age_caution')}
+              </span>
+            </p>
+          </div>
+        </div>
+
         <div className="row my-3">
           <div className="text-center text-md-left offset-md-3 col-md-5">
             <div className="row my-3">

@@ -76,6 +76,10 @@
     display: none;
   }
 
+  .toast-top-right {
+    top: 64px;
+  }
+
   /*****************
    * Expand Editor
    *****************/
@@ -239,11 +243,6 @@
       overflow-y: scroll;
     }
 
-    .wiki {
-      max-width: 980px;
-      margin: 0 auto;
-    }
-
     .grw-editor-configuration-dropdown {
       .icon-container {
         width: 20px;
@@ -296,6 +295,20 @@
     .btn-view-outdated-draft {
       text-decoration: underline;
       vertical-align: unset;
+    }
+  }
+}
+
+.wrapper.on-edit {
+  &:not(.growi-layout-fluid) .page-editor-preview-body {
+    .wiki {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+  }
+  &.growi-layout-fluid .page-editor-preview-body {
+    .wiki {
+      margin: 0 auto;
     }
   }
 }

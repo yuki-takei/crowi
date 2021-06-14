@@ -22,7 +22,8 @@ import { ExportArchiveDataPage } from '~/components/Admin/DataExport/ExportArchi
 import {
   useCurrentUser,
   useSearchServiceConfigured, useSearchServiceReachable, useSiteUrl,
-} from '../../stores/context';
+} from '~/stores/context';
+import { useEnvVars } from '~/stores/admin-context';
 
 const pluginUtils = new PluginUtils();
 
@@ -39,6 +40,7 @@ type Props = CommonProps & {
   isSearchServiceReachable: boolean,
 
   siteUrl: string,
+
 };
 
 const AdminMarkdownSettingsPage: NextPage<Props> = (props: Props) => {
@@ -55,7 +57,6 @@ const AdminMarkdownSettingsPage: NextPage<Props> = (props: Props) => {
         npmVersion={props.npmVersion}
         yarnVersion={props.yarnVersion}
         installedPlugins={props.installedPlugins}
-        envVars={props.envVars}
       />,
     },
     app: {
@@ -114,6 +115,8 @@ const AdminMarkdownSettingsPage: NextPage<Props> = (props: Props) => {
   useSearchServiceReachable(props.isSearchServiceReachable);
 
   useSiteUrl(props.siteUrl);
+
+  useEnvVars(props.envVars);
 
   return (
     <AdminLayout title={title} selectedNavOpt={name}>

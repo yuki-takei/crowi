@@ -10,6 +10,7 @@ import { toastError } from '../../../util/apiNotification';
 import TriggerEventCheckBox from './TriggerEventCheckBox';
 import AdminUpdateButtonRow from '~/components/Admin/Common/AdminUpdateButtonRow';
 import { apiv3Post, apiv3Put } from '~/utils/apiv3-client';
+// import { useIsMailerSetup } from '~/stores/context';
 
 const logger = loggerFactory('growi:manageGlobalNotification');
 
@@ -96,6 +97,9 @@ class ManageGlobalNotification extends React.Component {
 
   render() {
     const { t } = this.props;
+    // TODO GW-5729 enable useIsMailerSetup
+    // const { data: isMailerSetup } = useIsMailerSetup();
+    const isMailerSetup = false;
     return (
       <React.Fragment>
 
@@ -178,7 +182,10 @@ class ManageGlobalNotification extends React.Component {
                     />
 
                   </div>
+
                   <p className="p-2">
+                    {/* eslint-disable-next-line react/no-danger */}
+                    {!isMailerSetup && <span className="form-text text-muted" dangerouslySetInnerHTML={{ __html: t('admin:mailer_setup_required') }} />}
                     <b>Hint: </b>
                     <a href="https://ifttt.com/create" target="blank">{t('notification_setting.email.ifttt_link')}
                       <i className="icon-share-alt" />

@@ -1,6 +1,7 @@
 import { config as i18nConfig } from '~/i18n';
 import loggerFactory from '~/utils/logger';
 import { migrateDeprecatedLocaleId } from '~/utils/locale-utils';
+import Attachment from '~/server/models/attachment';
 
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
@@ -30,7 +31,7 @@ module.exports = function(crowi) {
   const STATUS_SUSPENDED = 3;
   const STATUS_DELETED = 4;
   const STATUS_INVITED = 5;
-  const USER_PUBLIC_FIELDS = '_id image isEmailPublished isGravatarEnabled googleId name username email introduction'
+  const USER_FIELDS_EXCEPT_CONFIDENTIAL = '_id image isEmailPublished isGravatarEnabled googleId name username email introduction'
   + ' status lang createdAt lastLoginAt admin imageUrlCached';
 
   const PAGE_ITEMS = 50;
@@ -252,7 +253,6 @@ module.exports = function(crowi) {
       return this.image;
     }
     if (this.imageAttachment != null && this.imageAttachment._id != null) {
-      const Attachment = crowi.model('Attachment');
       const imageAttachment = await Attachment.findById(this.imageAttachment);
       return imageAttachment.filePathProxied;
     }
@@ -275,6 +275,7 @@ module.exports = function(crowi) {
     this.name = name;
     this.username = username;
     this.status = STATUS_ACTIVE;
+    this.isEmailPublished = crowi.configManager.getConfig('crowi', 'customize:isEmailPublishedForNewUser');
 
     this.save((err, userData) => {
       userEvent.emit('activated', userData);
@@ -652,6 +653,10 @@ module.exports = function(crowi) {
     }
 
     const configManager = crowi.configManager;
+
+    // Default email show/hide is up to the administrator
+    newUser.isEmailPublished = configManager.getConfig('crowi', 'customize:isEmailPublishedForNewUser');
+
     const globalLang = configManager.getConfig('crowi', 'app:globalLang');
     if (globalLang != null) {
       newUser.lang = globalLang;
@@ -718,7 +723,7 @@ module.exports = function(crowi) {
   userSchema.statics.STATUS_SUSPENDED = STATUS_SUSPENDED;
   userSchema.statics.STATUS_DELETED = STATUS_DELETED;
   userSchema.statics.STATUS_INVITED = STATUS_INVITED;
-  userSchema.statics.USER_PUBLIC_FIELDS = USER_PUBLIC_FIELDS;
+  userSchema.statics.USER_FIELDS_EXCEPT_CONFIDENTIAL = USER_FIELDS_EXCEPT_CONFIDENTIAL;
   userSchema.statics.PAGE_ITEMS = PAGE_ITEMS;
 
   return mongoose.model('User', userSchema);

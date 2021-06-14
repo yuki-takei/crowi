@@ -64,7 +64,9 @@ const restrictedPatternsToCreate: Array<RegExp> = [
   /\s+\/\s+/, // avoid miss in renaming
   /.+\/edit$/,
   /.+\.md$/,
-  /^\/(installer|register|login|logout|admin|me|files|trash|paste|comments|tags)(\/.*|$)/,
+  /^(\.\.)$/, // see: https://github.com/weseek/growi/issues/3582
+  /(\/\.\.)\/?/, // see: https://github.com/weseek/growi/issues/3582
+  /^\/(installer|register|login|logout|admin|me|files|trash|paste|comments|tags|share)(\/.*|$)/,
 ];
 export const isCreatablePage = (path: string): boolean => {
   return !restrictedPatternsToCreate.some(pattern => path.match(pattern));
@@ -93,4 +95,18 @@ export const convertToNewAffiliationPath = (oldPath: string, newPath: string, ch
   }
   const pathRegExp = new RegExp(`^${escapeStringRegexp(oldPath)}`, 'i');
   return childPath.replace(pathRegExp, newPath);
+};
+
+/**
+ * Encode SPACE and IDEOGRAPHIC SPACE
+ * @param {string} path
+ * @returns {string}
+ */
+export const encodeSpaces = (path?:string): string | undefined => {
+  if (path == null) {
+    return undefined;
+  }
+
+  // Encode SPACE and IDEOGRAPHIC SPACE
+  return path.replace(/ /g, '%20').replace(/\u3000/g, '%E3%80%80');
 };

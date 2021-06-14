@@ -1,4 +1,5 @@
 import loggerFactory from '~/utils/logger';
+import Attachment from '~/server/models/attachment';
 
 const logger = loggerFactory('growi:routes:apiv3:attachment'); // eslint-disable-line no-unused-vars
 
@@ -6,6 +7,7 @@ const express = require('express');
 
 const router = express.Router();
 const { query } = require('express-validator');
+const { serializeUserSecurely } = require('../../models/serializers/user-serializer');
 
 const ErrorV3 = require('../../models/vo/error-apiv3');
 
@@ -20,7 +22,6 @@ module.exports = (crowi) => {
   const loginRequired = require('../../middlewares/login-required')(crowi, true);
   const Page = crowi.model('Page');
   const User = crowi.model('User');
-  const Attachment = crowi.model('Attachment');
   const apiV3FormValidator = require('../../middlewares/apiv3-form-validator')(crowi);
 
   const validator = {
@@ -69,15 +70,13 @@ module.exports = (crowi) => {
         {
           limit,
           offset,
-          populate: {
-            path: 'creator',
-            select: User.USER_PUBLIC_FIELDS,
-          },
+          populate: 'creator',
         },
       );
+
       paginateResult.docs.forEach((doc) => {
         if (doc.creator != null && doc.creator instanceof User) {
-          doc.creator = doc.creator.toObject();
+          doc.creator = serializeUserSecurely(doc.creator);
         }
       });
 

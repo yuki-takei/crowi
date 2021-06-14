@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// import detectIndent from 'detect-indent';
 
 import { throttle, debounce } from 'throttle-debounce';
-import { envUtils } from 'growi-commons';
+// import { envUtils } from 'growi-commons';
 import loggerFactory from '~/utils/logger';
 
 // import AppContainer from '../services/AppContainer';
@@ -59,6 +60,15 @@ class PageEditor extends React.Component {
       this.setState({ markdown: value });
     }));
     this.saveDraftWithDebounce = debounce(800, this.saveDraft);
+
+    // Detect indent size from contents (only when users are allowed to change it)
+    // TODO: https://youtrack.weseek.co.jp/issue/GW-5368
+    // if (!this.props.appContainer.config.isIndentSizeForced && this.state.markdown) {
+    //   const detectedIndent = detectIndent(this.state.markdown);
+    //   if (detectedIndent.type === 'space' && new Set([2, 4]).has(detectedIndent.amount)) {
+    //     this.props.editorContainer.setState({ indentSize: detectedIndent.amount });
+    //   }
+    // }
   }
 
   componentWillMount() {
@@ -91,13 +101,25 @@ class PageEditor extends React.Component {
    * @param {string} value
    */
   onMarkdownChanged(value) {
-    // const { pageContainer, editorContainer } = this.props;
-    this.setMarkdownStateWithDebounce(value);
-    // only when the first time to edit
+    // TODO GW-5862 display alert
+    // const { pageContainer } = this.props;
+    // this.setMarkdownStateWithDebounce(value);
+    // // only when the first time to edit
     // if (!pageContainer.state.revisionId) {
     //   this.saveDraftWithDebounce();
     // }
-    // editorContainer.enableUnsavedWarning();
+  }
+
+  // Displays an alert if there is a difference with pageContainer's markdown
+  componentDidUpdate(prevProps, prevState) {
+    // TODO GW-5862 display alert
+    // const { pageContainer, editorContainer } = this.props;
+
+    // if (this.state.markdown !== prevState.markdown) {
+    //   if (pageContainer.state.markdown !== this.state.markdown) {
+    //     editorContainer.enableUnsavedWarning();
+    //   }
+    // }
   }
 
   /**

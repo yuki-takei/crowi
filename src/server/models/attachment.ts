@@ -1,32 +1,33 @@
-import {
-  Schema, Types, Model, Document,
-} from 'mongoose';
-
 import path from 'path';
+import { Schema, Model } from 'mongoose';
 
 import uniqueValidator from 'mongoose-unique-validator';
 import mongoosePaginate from 'mongoose-paginate-v2';
-import { addSeconds } from 'date-fns';
-import loggerFactory from '~/utils/logger';
 
-import { getOrCreateModel } from '../util/mongoose-utils';
+import { createHash } from 'crypto';
+import { addSeconds } from 'date-fns';
+import { getOrCreateModel } from '~/server/util/mongoose-utils';
 import { Attachment as IAttachment } from '~/interfaces/page';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const logger = loggerFactory('growi:models:attachment');
+const ObjectId = Schema.Types.ObjectId;
 
-function generateFileHash(fileName:string) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const hash = require('crypto').createHash('md5');
+/*
+ * define methods type
+ */
+interface ModelMethods {
+  getValidTemporaryUrl(): string| null;
+}
+
+function generateFileHash(fileName) {
+  const hash = createHash('md5');
   hash.update(`${fileName}_${Date.now()}`);
 
   return hash.digest('hex');
 }
 
-
-const schema:Schema<IAttachment & Document> = new Schema<IAttachment & Document>({
-  page: { type: Types.ObjectId, ref: 'Page', index: true },
-  creator: { type: Types.ObjectId, ref: 'User', index: true },
+const schema = new Schema<IAttachment>({
+  page: { type: ObjectId, ref: 'Page', index: true },
+  creator: { type: ObjectId, ref: 'User', index: true },
   filePath: { type: String }, // DEPRECATED: remains for backward compatibility for v3.3.x or below
   fileName: { type: String, required: true, unique: true },
   originalName: { type: String },
@@ -36,14 +37,25 @@ const schema:Schema<IAttachment & Document> = new Schema<IAttachment & Document>
   temporaryUrlCached: { type: String },
   temporaryUrlExpiredAt: { type: Date },
 });
-
 schema.plugin(uniqueValidator);
 schema.plugin(mongoosePaginate);
+
+schema.virtual('filePathProxied').get(function(this) {
+  return `/attachment/${this._id}`;
+});
+
+schema.virtual('downloadPathProxied').get(function(this) {
+  return `/download/${this._id}`;
+});
 
 schema.set('toObject', { virtuals: true });
 schema.set('toJSON', { virtuals: true });
 
-
+/**
+ * UserGroup Class
+ *
+ * @class UserGroup
+ */
 class Attachment extends Model {
 
   static createWithoutSave(pageId, user, fileStream, originalName, fileFormat, fileSize) {
@@ -64,7 +76,6 @@ class Attachment extends Model {
 
     return attachment;
   }
-
 
   getValidTemporaryUrl() {
     if (this.temporaryUrlExpiredAt == null) {
@@ -89,15 +100,5 @@ class Attachment extends Model {
 
 }
 
-
-schema.virtual('filePathProxied').get(function(this: { _id : Types.ObjectId }) {
-  return `/attachment/${this._id}`;
-});
-
-schema.virtual('downloadPathProxied').get(function(this: { _id : Types.ObjectId }) {
-  return `/download/${this._id}`;
-});
-
 schema.loadClass(Attachment);
-// TODO rename model name
-export default getOrCreateModel<IAttachment & Document>('NewAttachment', schema);
+export default getOrCreateModel<IAttachment, ModelMethods>('Attachment', schema);

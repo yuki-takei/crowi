@@ -5,6 +5,7 @@ import { Provider } from 'unstated';
 import loggerFactory from '~/utils/logger';
 
 import ErrorBoundary from './components/ErrorBoudary';
+import Sidebar from './components/Sidebar';
 import SearchPage from './components/SearchPage';
 import TagsList from './components/TagsList';
 import DisplaySwitcher from './components/Page/DisplaySwitcher';
@@ -12,7 +13,6 @@ import { defaultEditorOptions, defaultPreviewOptions } from './components/PageEd
 import Page from './components/Page';
 import PageComments from './components/PageComments';
 import PageContentFooter from './components/PageContentFooter';
-import PageTimeline from './components/PageTimeline';
 import CommentEditorLazyRenderer from './components/PageComment/CommentEditorLazyRenderer';
 import PageManagement from './components/Page/PageManagement';
 import ShareLinkAlert from './components/Page/ShareLinkAlert';
@@ -73,6 +73,8 @@ logger.info('unstated containers have been initialized');
  *  value: React Element
  */
 Object.assign(componentMappings, {
+  'grw-sidebar-wrapper': <Sidebar />,
+
   'search-page': <SearchPage crowi={appContainer} />,
 
   // 'revision-history': <PageHistory pageId={pageId} />,
@@ -92,8 +94,6 @@ Object.assign(componentMappings, {
   />,
 
   'forbidden-page': <ForbiddenPage />,
-
-  'page-timeline': <PageTimeline />,
 
   'personal-setting': <PersonalSettings crowi={personalContainer} />,
 

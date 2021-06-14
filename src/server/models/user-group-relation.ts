@@ -1,22 +1,26 @@
-import {
-  Schema, Types, Model, Document,
-} from 'mongoose';
+import { Schema, Types, Model } from 'mongoose';
 
 import mongoosePaginate from 'mongoose-paginate-v2';
 import uniqueValidator from 'mongoose-unique-validator';
 
 import Debug from 'debug';
 import { getOrCreateModel } from '../util/mongoose-utils';
-import User, { USER_PUBLIC_FIELDS, STATUS_ACTIVE } from '~/server/models/new-user';
+// import User, { USER_PUBLIC_FIELDS, STATUS_ACTIVE } from '~/server/models/user';
 import { UserGroupRelation as IUserGroupRelation } from '~/interfaces/user';
 
 const debug = Debug('growi:models:userGroupRelation');
 
+/*
+ * define methods type
+ */
+interface ModelMethods {
+  removeById(id:string): void;
+}
 
 /*
  * define schema
  */
-const schema:Schema<IUserGroupRelation & Document> = new Schema<IUserGroupRelation & Document>({
+const schema = new Schema<IUserGroupRelation>({
   relatedGroup: { type: Types.ObjectId, ref: 'UserGroup', required: true },
   relatedUser: { type: Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now, required: true },
@@ -78,25 +82,6 @@ class UserGroupRelation extends Model {
   }
 
   /**
-   * find all user and group relation of UserGroup
-   *
-   * @static
-   * @param {UserGroup} userGroup
-   * @returns {Promise<UserGroupRelation[]>}
-   * @memberof UserGroupRelation
-   */
-  static findAllRelationForUserGroup(userGroup) {
-    debug('findAllRelationForUserGroup is called', userGroup);
-    return this
-      .find({ relatedGroup: userGroup })
-      .populate({
-        path: 'relatedUser',
-        select: USER_PUBLIC_FIELDS,
-      })
-      .exec();
-  }
-
-  /**
    * find all user and group relation of UserGroups
    *
    * @static
@@ -147,33 +132,6 @@ class UserGroupRelation extends Model {
   }
 
   /**
-   * find all entities with pagination
-   *
-   * @see https://github.com/edwardhotchkiss/mongoose-paginate
-   *
-   * @static
-   * @param {UserGroup} userGroup
-   * @param {any} opts mongoose-paginate options object
-   * @returns {Promise<any>} mongoose-paginate result object
-   * @memberof UserGroupRelation
-   */
-  static findUserGroupRelationsWithPagination(userGroup, opts) {
-    const query = { relatedGroup: userGroup };
-    const options = Object.assign({}, opts);
-    if (options.page == null) {
-      options.page = 1;
-    }
-    if (options.limit == null) {
-      options.limit = UserGroupRelation.PAGE_ITEMS;
-    }
-
-    return this.paginate(query, options)
-      .catch((err) => {
-        debug('Error on pagination:', err);
-      });
-  }
-
-  /**
    * count by related group id and related user
    *
    * @static
@@ -199,35 +157,35 @@ class UserGroupRelation extends Model {
    * @memberof UserGroupRelation
    */
   static findUserByNotRelatedGroup(userGroup, queryOptions) {
-    let searchWord = new RegExp(`${queryOptions.searchWord}`);
-    switch (queryOptions.searchType) {
-      case 'forward':
-        searchWord = new RegExp(`^${queryOptions.searchWord}`);
-        break;
-      case 'backword':
-        searchWord = new RegExp(`${queryOptions.searchWord}$`);
-        break;
-    }
-    const searthField:Array<{[key:string]:RegExp}> = [
-      { username: searchWord },
-    ];
-    if (queryOptions.isAlsoMailSearched === 'true') { searthField.push({ email: searchWord }) }
-    if (queryOptions.isAlsoNameSearched === 'true') { searthField.push({ name: searchWord }) }
+    // let searchWord = new RegExp(`${queryOptions.searchWord}`);
+    // switch (queryOptions.searchType) {
+    //   case 'forward':
+    //     searchWord = new RegExp(`^${queryOptions.searchWord}`);
+    //     break;
+    //   case 'backword':
+    //     searchWord = new RegExp(`${queryOptions.searchWord}$`);
+    //     break;
+    // }
+    // const searthField:Array<{[key:string]:RegExp}> = [
+    //   { username: searchWord },
+    // ];
+    // if (queryOptions.isAlsoMailSearched === 'true') { searthField.push({ email: searchWord }) }
+    // if (queryOptions.isAlsoNameSearched === 'true') { searthField.push({ name: searchWord }) }
 
-    return this.findAllRelationForUserGroup(userGroup)
-      .then((relations) => {
-        const relatedUserIds = relations.map((relation) => {
-          return relation.relatedUser.id;
-        });
-        const query = {
-          _id: { $nin: relatedUserIds },
-          status: STATUS_ACTIVE,
-          $or: searthField,
-        };
+    // return this.findAllRelationForUserGroup(userGroup)
+    //   .then((relations) => {
+    //     const relatedUserIds = relations.map((relation) => {
+    //       return relation.relatedUser.id;
+    //     });
+    //     const query = {
+    //       _id: { $nin: relatedUserIds },
+    //       status: STATUS_ACTIVE,
+    //       $or: searthField,
+    //     };
 
-        debug('findUserByNotRelatedGroup ', query);
-        return User.find(query).exec();
-      });
+    //     debug('findUserByNotRelatedGroup ', query);
+    //     return User.find(query).exec();
+    //   });
   }
 
   /**
@@ -304,4 +262,4 @@ class UserGroupRelation extends Model {
 
 }
 schema.loadClass(UserGroupRelation);
-export default getOrCreateModel<IUserGroupRelation & Document>('UserGroupRelation', schema);
+export default getOrCreateModel<IUserGroupRelation, ModelMethods>('UserGroupRelation', schema);

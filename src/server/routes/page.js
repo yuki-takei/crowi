@@ -1,13 +1,16 @@
 import loggerFactory from '~/utils/logger';
 import ShareLink from '~/server/models/share-link';
-import Bookmark from '~/server/models/bookmark';
+import Revision from '~/server/models/revision';
+import PageTagRelation from '~/server/models/page-tag-relation';
 
 const swig = require('swig-templates');
 const { pathUtils } = require('growi-commons');
 
 const logger = loggerFactory('growi:routes:page');
+const { isCreatablePage } = require('~/utils/path-utils');
 const { serializePageSecurely } = require('../models/serializers/page-serializer');
 const { serializeRevisionSecurely } = require('../models/serializers/revision-serializer');
+const { serializeUserSecurely } = require('../models/serializers/user-serializer');
 
 /**
  * @swagger
@@ -136,7 +139,6 @@ const { serializeRevisionSecurely } = require('../models/serializers/revision-se
 module.exports = function(crowi, app) {
   const Page = crowi.model('Page');
   const User = crowi.model('User');
-  const PageTagRelation = crowi.model('PageTagRelation');
   const GlobalNotificationSetting = crowi.model('GlobalNotificationSetting');
 
   const ApiResponse = require('../util/apiResponse');
@@ -222,12 +224,11 @@ module.exports = function(crowi, app) {
     renderVars.revision = page.revision;
   }
 
-  async function addRenderVarsForUserPage(renderVars, page, requestUser) {
+  async function addRenderVarsForUserPage(renderVars, page) {
     const userData = await User.findUserByUsername(User.getUsernameByPath(page.path));
 
     if (userData != null) {
-      renderVars.pageUser = userData.toObject();
-      renderVars.bookmarkList = await Bookmark.findByUser(userData, { limit: 10, populatePage: true, requestUser });
+      renderVars.pageUser = serializeUserSecurely(userData);
     }
   }
 
@@ -371,7 +372,7 @@ module.exports = function(crowi, app) {
     if (isUserPage(page.path)) {
       // change template
       view = 'layout-growi/user_page';
-      await addRenderVarsForUserPage(renderVars, page, req.user);
+      await addRenderVarsForUserPage(renderVars, page);
     }
 
     await interceptorManager.process('beforeRenderPage', req, res, renderVars);
@@ -479,12 +480,10 @@ module.exports = function(crowi, app) {
   actions.notFound = async function(req, res) {
     const path = getPathFromRequest(req);
 
-    const isCreatable = Page.isCreatableName(path);
-
     let view;
     const renderVars = { path };
 
-    if (!isCreatable) {
+    if (!isCreatablePage(path)) {
       view = 'layout-growi/not_creatable';
     }
     else if (req.isForbidden) {
@@ -653,6 +652,12 @@ module.exports = function(crowi, app) {
       if (result.pages.length > limit) {
         result.pages.pop();
       }
+
+      result.pages.forEach((page) => {
+        if (page.lastUpdateUser != null && page.lastUpdateUser instanceof User) {
+          page.lastUpdateUser = serializeUserSecurely(page.lastUpdateUser);
+        }
+      });
 
       return res.json(ApiResponse.success(result));
     }
@@ -829,7 +834,6 @@ module.exports = function(crowi, app) {
       options.grantUserGroupId = grantUserGroupId;
     }
 
-    const Revision = crowi.model('Revision');
     const previousRevision = await Revision.findById(revisionId);
     try {
       page = await Page.updatePage(page, pageBody, previousRevision.body, req.user, options);
@@ -1078,124 +1082,6 @@ module.exports = function(crowi, app) {
     result.page = page; // TODO consider to use serializePageSecurely method -- 2018.08.06 Yuki Takei
 
     return res.json(ApiResponse.success(result));
-  };
-
-  /**
-   * @swagger
-   *
-   *    /pages.rename:
-   *      post:
-   *        tags: [Pages, CrowiCompatibles]
-   *        operationId: renamePage
-   *        summary: /pages.rename
-   *        description: Rename page
-   *        requestBody:
-   *          content:
-   *            application/json:
-   *              schema:
-   *                properties:
-   *                  page_id:
-   *                    $ref: '#/components/schemas/Page/properties/_id'
-   *                  path:
-   *                    $ref: '#/components/schemas/Page/properties/path'
-   *                  revision_id:
-   *                    $ref: '#/components/schemas/Revision/properties/_id'
-   *                  new_path:
-   *                    type: string
-   *                    description: new path
-   *                    example: /user/alice/new_test
-   *                  create_redirect:
-   *                    type: boolean
-   *                    description: whether redirect page
-   *                required:
-   *                  - page_id
-   *        responses:
-   *          200:
-   *            description: Succeeded to rename page.
-   *            content:
-   *              application/json:
-   *                schema:
-   *                  properties:
-   *                    ok:
-   *                      $ref: '#/components/schemas/V1Response/properties/ok'
-   *                    page:
-   *                      $ref: '#/components/schemas/Page'
-   *          403:
-   *            $ref: '#/components/responses/403'
-   *          500:
-   *            $ref: '#/components/responses/500'
-   */
-  /**
-   * @api {post} /pages.rename Rename page
-   * @apiName RenamePage
-   * @apiGroup Page
-   *
-   * @apiParam {String} page_id Page Id.
-   * @apiParam {String} path
-   * @apiParam {String} revision_id
-   * @apiParam {String} new_path New path name.
-   * @apiParam {Bool} create_redirect
-   */
-  api.rename = async function(req, res) {
-    const pageId = req.body.page_id;
-    const previousRevision = req.body.revision_id || null;
-    let newPagePath = pathUtils.normalizePath(req.body.new_path);
-    const options = {
-      createRedirectPage: (req.body.create_redirect != null),
-      updateMetadata: (req.body.remain_metadata == null),
-      socketClientId: +req.body.socketClientId || undefined,
-    };
-    const isRecursively = (req.body.recursively != null);
-
-    if (!Page.isCreatableName(newPagePath)) {
-      return res.json(ApiResponse.error(`Could not use the path '${newPagePath})'`, 'invalid_path'));
-    }
-
-    // check whether path starts slash
-    newPagePath = pathUtils.addHeadingSlash(newPagePath);
-
-    const isExist = await Page.count({ path: newPagePath }) > 0;
-    if (isExist) {
-      // if page found, cannot cannot rename to that path
-      return res.json(ApiResponse.error(`'new_path=${newPagePath}' already exists`, 'already_exists'));
-    }
-
-    let page;
-
-    try {
-      page = await Page.findByIdAndViewer(pageId, req.user);
-
-      if (page == null) {
-        return res.json(ApiResponse.error(`Page '${pageId}' is not found or forbidden`, 'notfound_or_forbidden'));
-      }
-
-      if (!page.isUpdatable(previousRevision)) {
-        return res.json(ApiResponse.error('Someone could update this page, so couldn\'t delete.', 'outdated'));
-      }
-
-      page = await crowi.pageService.renamePage(page, newPagePath, req.user, options, isRecursively);
-    }
-    catch (err) {
-      logger.error(err);
-      return res.json(ApiResponse.error('Failed to update page.', 'unknown'));
-    }
-
-    const result = {};
-    result.page = page; // TODO consider to use serializePageSecurely method -- 2018.08.06 Yuki Takei
-
-    res.json(ApiResponse.success(result));
-
-    try {
-      // global notification
-      await globalNotificationService.fire(GlobalNotificationSetting.EVENT.PAGE_MOVE, page, req.user, {
-        oldPath: req.body.path,
-      });
-    }
-    catch (err) {
-      logger.error('Move notification failed', err);
-    }
-
-    return page;
   };
 
   /**

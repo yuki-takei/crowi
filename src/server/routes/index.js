@@ -118,6 +118,7 @@ module.exports = function(crowi, app) {
   // app.get('/admin/export'                       , loginRequiredStrictly , adminRequired ,admin.export.index);
   // app.get('/admin/export/:fileName'             , loginRequiredStrictly , adminRequired ,admin.export.api.validators.export.download(), admin.export.download);
 
+  app.get('/admin/*'                       , loginRequiredStrictly ,adminRequired, admin.notFound.index);
   // app.get('/me'                       , loginRequiredStrictly , me.index);
   // external-accounts
   // app.get('/me/external-accounts'                         , loginRequiredStrictly , me.externalAccounts.list);
@@ -136,7 +137,6 @@ module.exports = function(crowi, app) {
 
   app.get('/_api/check_username'           , user.api.checkUsername);
   app.get('/_api/me/user-group-relations'  , accessTokenParser , loginRequiredStrictly , me.api.userGroupRelations);
-  app.get('/_api/user/bookmarks'           , loginRequired , user.api.bookmarks);
 
   // HTTP RPC Styled API (に徐々に移行していいこうと思う)
   app.get('/_api/users.list'          , accessTokenParser , loginRequired , user.api.list);
@@ -147,7 +147,6 @@ module.exports = function(crowi, app) {
   app.get('/_api/pages.updatePost'    , accessTokenParser, loginRequired, page.api.getUpdatePost);
   app.get('/_api/pages.getPageTag'    , accessTokenParser , loginRequired , page.api.getPageTag);
   // allow posting to guests because the client doesn't know whether the user logged in
-  app.post('/_api/pages.rename'       , accessTokenParser , loginRequiredStrictly , page.api.rename);
   app.post('/_api/pages.revertRemove' , loginRequiredStrictly , page.api.revertRemove); // (Avoid from API Token)
   app.post('/_api/pages.unlink'       , loginRequiredStrictly , page.api.unlink); // (Avoid from API Token)
   app.post('/_api/pages.duplicate'    , accessTokenParser, loginRequiredStrictly, page.api.duplicate);

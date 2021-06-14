@@ -68,6 +68,10 @@ export const useSearchServiceReachable = (initialData?: boolean): responseInterf
   return useStaticSWR('searchServiceReachable', initialData);
 };
 
+export const useIsMailerSetup = (initialData?: boolean): responseInterface<boolean, any> => {
+  return useStaticSWR('isMailerSetup', initialData);
+};
+
 export const useAclEnabled = (initialData?: boolean): responseInterface<boolean, any> => {
   return useStaticSWR('isAclEnabled', initialData);
 };
@@ -86,6 +90,10 @@ export const useHackmdUri = (initialData?: string): responseInterface<string, an
 
 export const useIsAllReplyShown = (initialData?: boolean): responseInterface<boolean, any> => {
   return useStaticSWR('isAllReplyShown', initialData, false);
+};
+
+export const useIsEnabledStaleNotification = (initialData?: boolean): responseInterface<boolean, any> => {
+  return useStaticSWR('isEnabledStaleNotification', initialData, false);
 };
 
 export const useGrowiVersion = (initialData?: string): responseInterface<string, any> => {

@@ -19,15 +19,13 @@ export const getModelSafely = <T>(modelName: string): Model<T & Document> | null
   return null;
 };
 
-export const getOrCreateModel = <T>(modelName: string, schema: Schema<T>): Model<T & Document> => {
+export const getOrCreateModel = <Interface, Method>(modelName: string, schema: Schema<Interface>): Method & Model<Interface & Document> => {
   if (mongoose.modelNames().includes(modelName)) {
-    return mongoose.model<T & Document>(modelName);
+    return mongoose.model<Interface & Document, Method & Model<Interface & Document>>(modelName);
   }
-  return mongoose.model<T & Document>(modelName, schema);
+  return mongoose.model<Interface & Document, Method & Model<Interface & Document>>(modelName, schema);
 };
 
 export const mongoOptions: ConnectionOptions = {
-  useNewUrlParser: true, // removes a deprecation warning when connecting
-  useUnifiedTopology: true,
   useFindAndModify: false,
 };

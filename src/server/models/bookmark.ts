@@ -1,13 +1,11 @@
-import {
-  Schema, Model, Document,
-} from 'mongoose';
+import { Schema, Model } from 'mongoose';
 
 import mongoosePaginate from 'mongoose-paginate-v2';
 import uniqueValidator from 'mongoose-unique-validator';
 
 import { getOrCreateModel } from '../util/mongoose-utils';
 import loggerFactory from '~/utils/logger';
-import { USER_PUBLIC_FIELDS } from '~/server/models/new-user';
+// import { USER_PUBLIC_FIELDS } from '~/server/models/new-user';
 // import BookmarkEvent from '~/server/events/bookmark';
 import { Bookmark as IBookmark } from '~/interfaces/page';
 import { User as IUser } from '~/interfaces/user';
@@ -23,7 +21,14 @@ type Option= {
   populatePage: boolean,
 }
 
-const schema:Schema<IBookmark & Document> = new Schema<IBookmark & Document>({
+/*
+ * define methods type
+ */
+interface ModelMethods {
+  removeBookmark(pageId:string, user:IUser): Promise<IBookmark>
+ }
+
+const schema = new Schema<IBookmark>({
   page: { type: ObjectId, ref: 'Page', index: true },
   user: { type: ObjectId, ref: 'User', index: true },
   createdAt: { type: Date, default: Date.now },
@@ -55,15 +60,6 @@ class Bookmark extends Model {
     return idToCountMap;
   }
 
-  static async populatePage(bookmarks) {
-    return this.populate(bookmarks, {
-      path: 'page',
-      populate: {
-        path: 'lastUpdateUser', model: 'User', select: USER_PUBLIC_FIELDS,
-      },
-    });
-  }
-
   // bookmark チェック用
   static async findByPageIdAndUserId(pageId, userId) {
     return new Promise(((resolve, reject) => {
@@ -74,34 +70,6 @@ class Bookmark extends Model {
 
         return resolve(doc);
       });
-    }));
-  }
-
-  static async findByUser(user:IUser, option:Option) {
-    const requestUser = option.requestUser || null;
-
-    logger.debug('Finding bookmark with requesting user:', requestUser);
-
-    const limit = option.limit || 50;
-    const offset = option.offset || 0;
-    const populatePage = option.populatePage || false;
-
-    return new Promise(((resolve, reject) => {
-      this.find({ user: user._id })
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .exec((err, bookmarks) => {
-          if (err) {
-            return reject(err);
-          }
-
-          if (!populatePage) {
-            return resolve(bookmarks);
-          }
-
-          return this.populatePage(bookmarks).then(resolve);
-        });
     }));
   }
 
@@ -150,4 +118,4 @@ class Bookmark extends Model {
 }
 
 schema.loadClass(Bookmark);
-export default getOrCreateModel<IBookmark & Document>('Bookmark', schema);
+export default getOrCreateModel<IBookmark, ModelMethods>('Bookmark', schema);

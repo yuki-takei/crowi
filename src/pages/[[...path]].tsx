@@ -18,6 +18,7 @@ import BasicLayout from '../components/BasicLayout';
 
 import GrowiSubNavigation from '../client/js/components/Navbar/GrowiSubNavigation';
 // import GrowiSubNavigationSwitcher from '../client/js/components/Navbar/GrowiSubNavigationSwitcher';
+import { PageAlerts } from '~/components/PageAlert/PageAlerts';
 import DisplaySwitcher from '../client/js/components/Page/DisplaySwitcher';
 // import PageStatusAlert from '../client/js/components/PageStatusAlert';
 
@@ -26,8 +27,8 @@ import { PageComments } from '~/components/PageComment/PageComments';
 import {
   useCurrentUser, useCurrentPagePath, useOwnerOfCurrentPage,
   useForbidden, useNotFound, useTrash, useShared, useShareLinkId, useIsSharedUser, useIsAbleToDeleteCompletely,
-  useAppTitle, useSiteUrl, useConfidential,
-  useSearchServiceConfigured, useSearchServiceReachable,
+  useAppTitle, useSiteUrl, useConfidential, useIsEnabledStaleNotification,
+  useSearchServiceConfigured, useSearchServiceReachable, useIsMailerSetup,
   useAclEnabled, useHasSlackConfig, useDrawioUri, useHackmdUri,
 } from '../stores/context';
 import { useCurrentPageSWR } from '../stores/page';
@@ -55,14 +56,19 @@ type Props = CommonProps & {
   isAbleToDeleteCompletely: boolean,
   isSearchServiceConfigured: boolean,
   isSearchServiceReachable: boolean,
+  isMailerSetup: boolean,
   isAclEnabled: boolean,
   hasSlackConfig: boolean,
   drawioUri: string,
   hackmdUri: string,
   highlightJsStyle: string,
   isAllReplyShown: boolean,
+  isContainerFluid: boolean,
+  isEnabledStaleNotification: boolean,
   isEnabledLinebreaks: boolean,
   isEnabledLinebreaksInComments: boolean,
+  adminPreferredIndentSize: number,
+  isIndentSizeForced: boolean,
 };
 
 const GrowiPage: NextPage<Props> = (props: Props) => {
@@ -79,12 +85,14 @@ const GrowiPage: NextPage<Props> = (props: Props) => {
   useShareLinkId(props.shareLinkId);
   useIsAbleToDeleteCompletely(props.isAbleToDeleteCompletely);
   useIsSharedUser(props.currentUser == null && isSharedPage(props.currentPagePath));
+  useIsEnabledStaleNotification(props.isEnabledStaleNotification);
 
   useAppTitle(props.appTitle);
   useSiteUrl(props.siteUrl);
   useConfidential(props.confidential);
   useSearchServiceConfigured(props.isSearchServiceConfigured);
   useSearchServiceReachable(props.isSearchServiceReachable);
+  useIsMailerSetup(props.isMailerSetup);
   useAclEnabled(props.isAclEnabled);
   useHasSlackConfig(props.hasSlackConfig);
   useDrawioUri(props.drawioUri);
@@ -93,6 +101,8 @@ const GrowiPage: NextPage<Props> = (props: Props) => {
   useRendererSettings({
     isEnabledLinebreaks: props.isEnabledLinebreaks,
     isEnabledLinebreaksInComments: props.isEnabledLinebreaksInComments,
+    adminPreferredIndentSize: props.adminPreferredIndentSize,
+    isIndentSizeForced: props.isIndentSizeForced,
   });
 
   const { data: editorMode } = useEditorMode();
@@ -103,15 +113,22 @@ const GrowiPage: NextPage<Props> = (props: Props) => {
   }
   useCurrentPageSWR(page);
 
-  let className = '';
+  const classNames: string[] = [];
   switch (editorMode) {
     case EditorMode.Editor:
-      className = 'on-edit builtin-editor';
+      classNames.push('on-edit', 'builtin-editor');
       break;
     case EditorMode.HackMD:
-      className = 'on-edit hackmd';
+      classNames.push('on-edit', 'hackmd');
       break;
   }
+  if (props.isContainerFluid) {
+    classNames.push('growi-layout-fluid');
+  }
+  if (page == null) {
+    classNames.push('not-found-page');
+  }
+
 
   // Rewrite browser url by Shallow Routing https://nextjs.org/docs/routing/shallow-routing
   useEffect(() => {
@@ -130,7 +147,7 @@ const GrowiPage: NextPage<Props> = (props: Props) => {
         {renderScriptTagByName('highlight-addons')}
         {renderHighlightJsStyleTag(props.highlightJsStyle)}
       </Head>
-      <BasicLayout title={useCustomTitle(props, t('GROWI'))} className={className}>
+      <BasicLayout title={useCustomTitle(props, t('GROWI'))} className={classNames.join(' ')}>
         <header className="py-0">
           <GrowiSubNavigation />
         </header>
@@ -145,7 +162,8 @@ const GrowiPage: NextPage<Props> = (props: Props) => {
 
           <div className="row">
             <div className="col grw-page-content-container">
-              <div id="content-main" className="content-main container">
+              <div id="content-main" className="content-main grw-container-convertible">
+                <PageAlerts />
                 <DisplaySwitcher />
                 <div id="page-editor-navbar-bottom-container" className="d-none d-edit-block"></div>
                 {/* <PageStatusAlert /> */}
@@ -219,7 +237,7 @@ export const getServerSideProps: GetServerSideProps = async(context: GetServerSi
   const req: CrowiRequest = context.req as CrowiRequest;
   const { crowi } = req;
   const {
-    appService, searchService, configManager, aclService, slackNotificationService,
+    appService, searchService, configManager, aclService, slackNotificationService, mailService,
   } = crowi;
 
   const { user } = req;
@@ -245,14 +263,19 @@ export const getServerSideProps: GetServerSideProps = async(context: GetServerSi
   props.confidential = appService.getAppConfidential();
   props.isSearchServiceConfigured = searchService.isConfigured;
   props.isSearchServiceReachable = searchService.isReachable;
+  props.isMailerSetup = mailService.isMailerSetup;
   props.isAclEnabled = aclService.isAclEnabled();
   props.hasSlackConfig = slackNotificationService.hasSlackConfig();
   props.drawioUri = configManager.getConfig('crowi', 'app:drawioUri');
   props.hackmdUri = configManager.getConfig('crowi', 'app:hackmdUri');
   props.highlightJsStyle = configManager.getConfig('crowi', 'customize:highlightJsStyle');
   props.isAllReplyShown = configManager.getConfig('crowi', 'customize:isAllReplyShown');
+  props.isContainerFluid = configManager.getConfig('crowi', 'customize:isContainerFluid');
+  props.isEnabledStaleNotification = configManager.getConfig('crowi', 'customize:isEnabledStaleNotification');
   props.isEnabledLinebreaks = configManager.getConfig('markdown', 'markdown:isEnabledLinebreaks');
   props.isEnabledLinebreaksInComments = configManager.getConfig('markdown', 'markdown:isEnabledLinebreaksInComments');
+  props.adminPreferredIndentSize = configManager.getConfig('markdown', 'markdown:adminPreferredIndentSize');
+  props.isIndentSizeForced = configManager.getConfig('markdown', 'markdown:isIndentSizeForced');
 
   return {
     props,

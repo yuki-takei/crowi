@@ -3,18 +3,24 @@ import { Schema, Model } from 'mongoose';
 
 import mongoosePaginate from 'mongoose-paginate-v2';
 import Debug from 'debug';
-import { getOrCreateModel } from '../util/mongoose-utils';
+import { getOrCreateModel } from '~/server/util/mongoose-utils';
 import { UserGroup as IUserGroup } from '~/interfaces/user';
 
 import ConfigManager from '~/server/service/config-manager';
 
 const debug = Debug('growi:models:userGroup');
 
+/*
+ * define methods type
+ */
+interface ModelMethods {
+  updateName(name:string): Promise<void>;
+}
 
 /*
  * define schema
  */
-const schema:Schema<IUserGroup & Document> = new Schema<IUserGroup & Document>({
+const schema = new Schema<IUserGroup>({
   userGroupId: String,
   name: { type: String, required: true, unique: true },
   createdAt: { type: Date, default: Date.now },
@@ -66,7 +72,7 @@ class UserGroup extends Model {
     return `userGroup/${userGroup._id}${ext}`;
   }
 
-  static findAllGroups(_option) {
+  static findAllGroups() {
     return this.find().exec();
   }
 
@@ -122,4 +128,4 @@ class UserGroup extends Model {
 
 
 schema.loadClass(UserGroup);
-export default getOrCreateModel<IUserGroup & Document>('UserGroup', schema);
+export default getOrCreateModel<IUserGroup, ModelMethods>('UserGroup', schema);

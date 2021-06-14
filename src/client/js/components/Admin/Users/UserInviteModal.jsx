@@ -13,6 +13,7 @@ import { toastSuccess, toastError } from '../../../util/apiNotification';
 
 import { withUnstatedContainers } from '../../UnstatedUtils';
 import AdminUsersContainer from '../../../services/AdminUsersContainer';
+// import { useIsMailerSetup } from '~/stores/context';
 
 class UserInviteModal extends React.Component {
 
@@ -45,7 +46,12 @@ class UserInviteModal extends React.Component {
 
     return (
       <>
-        <label> {t('admin:user_management.invite_modal.emails')}</label>
+        <label>{t('admin:user_management.invite_modal.emails')}</label>
+        <p>
+          {t('admin:user_management.invite_modal.description1')}
+          <br />
+          {t('admin:user_management.invite_modal.description2')}
+        </p>
         <textarea
           className="form-control"
           placeholder="e.g.&#13;&#10;user1@growi.org&#13;&#10;user2@growi.org"
@@ -75,13 +81,30 @@ class UserInviteModal extends React.Component {
   renderModalFooter() {
     const { t } = this.props;
 
+    // TODO GW-5729 enable useIsMailerSetup
+    // const { data: isMailerSetup } = useIsMailerSetup();
+    const isMailerSetup = false;
+
     return (
       <>
         <div className="col text-left custom-control custom-checkbox custom-checkbox-info text-left" onChange={this.handleCheckBox}>
-          <input type="checkbox" id="sendEmail" className="custom-control-input" name="sendEmail" defaultChecked={this.state.sendEmail} />
+          <input
+            type="checkbox"
+            id="sendEmail"
+            className="custom-control-input"
+            name="sendEmail"
+            defaultChecked={this.state.sendEmail}
+            disabled={!isMailerSetup}
+          />
           <label className="custom-control-label" htmlFor="sendEmail">
             {t('admin:user_management.invite_modal.invite_thru_email')}
           </label>
+          {isMailerSetup
+            // eslint-disable-next-line react/no-danger
+            ? <p className="form-text text-muted" dangerouslySetInnerHTML={{ __html: t('admin:user_management.invite_modal.mail_setting_link') }} />
+            // eslint-disable-next-line react/no-danger
+            : <p className="form-text text-muted" dangerouslySetInnerHTML={{ __html: t('admin:mailer_setup_required') }} />
+          }
         </div>
         <div>
           <button
@@ -89,7 +112,7 @@ class UserInviteModal extends React.Component {
             className="btn btn-outline-secondary mr-2"
             onClick={this.onToggleModal}
           >
-            Cancel
+            {t('Cancel')}
           </button>
 
           <button
@@ -98,7 +121,7 @@ class UserInviteModal extends React.Component {
             onClick={this.handleSubmit}
             disabled={!this.validEmail()}
           >
-            Invite
+            {t('admin:user_management.invite_modal.issue')}
           </button>
         </div>
       </>
@@ -118,7 +141,7 @@ class UserInviteModal extends React.Component {
           className="btn btn-outline-secondary"
           onClick={this.onToggleModal}
         >
-          Close
+          {t('Close')}
         </button>
       </>
     );

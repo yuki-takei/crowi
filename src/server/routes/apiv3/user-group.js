@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 
 const ErrorV3 = require('../../models/vo/error-apiv3');
 
+const { serializeUserSecurely } = require('../../models/serializers/user-serializer');
 const { toPagingLimit, toPagingOffset } = require('../../util/express-validator/sanitizer');
 
 const validator = {};
@@ -56,10 +57,18 @@ module.exports = (crowi) => {
    *                      description: a result of `UserGroup.find`
    */
   router.get('/', loginRequiredStrictly, adminRequired, async(req, res) => {
+    const { query } = req;
+
     // TODO: filter with querystring
     try {
-      const page = parseInt(req.query.page) || 1;
-      const result = await UserGroup.findUserGroupsWithPagination({ page });
+      const page = query.page != null ? parseInt(query.page) : undefined;
+      const limit = query.limit != null ? parseInt(query.limit) : undefined;
+      const offset = query.offset != null ? parseInt(query.offset) : undefined;
+      const pagination = query.pagination != null ? query.pagination !== 'false' : undefined;
+
+      const result = await UserGroup.findUserGroupsWithPagination({
+        page, limit, offset, pagination,
+      });
       const { docs: userGroups, totalDocs: totalUserGroups, limit: pagingLimit } = result;
       return res.apiv3({ userGroups, totalUserGroups, pagingLimit });
     }
@@ -169,7 +178,7 @@ module.exports = (crowi) => {
     const { actionName, transferToUserGroupId } = req.query;
 
     try {
-      const userGroup = await crowi.userGroupService.removeCompletelyById(deleteGroupId, actionName, transferToUserGroupId);
+      const userGroup = await crowi.userGroupService.removeCompletelyById(deleteGroupId, actionName, transferToUserGroupId, req.user);
 
       return res.apiv3({ userGroup });
     }
@@ -278,9 +287,10 @@ module.exports = (crowi) => {
       const userGroup = await UserGroup.findById(id);
       const userGroupRelations = await UserGroupRelation.findAllRelationForUserGroup(userGroup);
 
-      const users = userGroupRelations.map((userGroupRelation) => {
-        return userGroupRelation.relatedUser;
+      const serializeUsers = userGroupRelations.map((userGroupRelation) => {
+        return serializeUserSecurely(userGroupRelation.relatedUser);
       });
+      const users = serializeUsers.filter(user => user != null);
 
       return res.apiv3({ users });
     }
@@ -335,7 +345,14 @@ module.exports = (crowi) => {
       const userGroup = await UserGroup.findById(id);
       const users = await UserGroupRelation.findUserByNotRelatedGroup(userGroup, queryOptions);
 
-      return res.apiv3({ users });
+      // return email only this api
+      const serializedUsers = users.map((user) => {
+        const { email } = user;
+        const serializedUser = serializeUserSecurely(user);
+        serializedUser.email = email;
+        return serializedUser;
+      });
+      return res.apiv3({ users: serializedUsers });
     }
     catch (err) {
       const msg = `Error occurred in fetching unrelated users for group: ${id}`;
@@ -402,9 +419,9 @@ module.exports = (crowi) => {
       }
 
       const userGroupRelation = await UserGroupRelation.createRelation(userGroup, user);
-      await userGroupRelation.populate('relatedUser', User.USER_PUBLIC_FIELDS).execPopulate();
+      const serializedUser = serializeUserSecurely(user);
 
-      return res.apiv3({ user, userGroup, userGroupRelation });
+      return res.apiv3({ user: serializedUser, userGroup, userGroupRelation });
     }
     catch (err) {
       const msg = `Error occurred in adding the user "${username}" to group "${id}"`;
@@ -462,14 +479,10 @@ module.exports = (crowi) => {
         User.findUserByUsername(username),
       ]);
 
-      const userGroupRelation = await UserGroupRelation.findOne({ relatedUser: new ObjectId(user._id), relatedGroup: new ObjectId(userGroup._id) });
-      if (userGroupRelation == null) {
-        throw new Error(`Group "${id}" does not exist or user "${username}" does not belong to group "${id}"`);
-      }
+      const userGroupRelation = await UserGroupRelation.findOneAndDelete({ relatedUser: new ObjectId(user._id), relatedGroup: new ObjectId(userGroup._id) });
+      const serializedUser = serializeUserSecurely(user);
 
-      await userGroupRelation.remove();
-
-      return res.apiv3({ user, userGroup, userGroupRelation });
+      return res.apiv3({ user: serializedUser, userGroup, userGroupRelation });
     }
     catch (err) {
       const msg = `Error occurred in removing the user "${username}" from group "${id}"`;
@@ -575,16 +588,18 @@ module.exports = (crowi) => {
       }, {
         offset,
         limit,
-        populate: {
-          path: 'lastUpdateUser',
-          select: User.USER_PUBLIC_FIELDS,
-        },
+        populate: 'lastUpdateUser',
       });
 
       const current = offset / limit + 1;
 
+      const pages = docs.map((doc) => {
+        doc.lastUpdateUser = serializeUserSecurely(doc.lastUpdateUser);
+        return doc;
+      });
+
       // TODO: create a common moudule for paginated response
-      return res.apiv3({ total: totalDocs, current, pages: docs });
+      return res.apiv3({ total: totalDocs, current, pages });
     }
     catch (err) {
       const msg = `Error occurred in fetching pages for group: ${id}`;

@@ -1,6 +1,4 @@
-import {
-  Types, Schema,
-} from 'mongoose';
+import { Types, Schema } from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
 
 import { getOrCreateModel } from '../util/mongoose-utils';
@@ -11,6 +9,12 @@ export interface Config {
   key: string;
   value: string;
 }
+
+/*
+ * define methods type
+ */
+interface ModelMethods { any }
+
 
 const schema = new Schema<Config>({
   ns: { type: String, required: true },
@@ -114,7 +118,7 @@ export const defaultCrowiConfigs: { [key: string]: any } = {
   'customize:highlightJsStyle' : 'github',
   'customize:highlightJsStyleBorder' : false,
   'customize:theme' : 'default',
-  'customize:layout' : 'growi',
+  'customize:isContainerFluid' : false,
   'customize:isEnabledTimeline' : true,
   'customize:isSavedStatesOfTabChanges' : true,
   'customize:isEnabledAttachTitleHeader' : false,
@@ -142,6 +146,8 @@ export const defaultMarkdownConfigs: { [key: string]: any } = {
   'markdown:xss:attrWhiteList': [],
   'markdown:isEnabledLinebreaks': false,
   'markdown:isEnabledLinebreaksInComments': true,
+  'markdown:adminPreferredIndentSize': 4,
+  'markdown:isIndentSizeForced': false,
   'markdown:presentation:pageBreakSeparator': 1,
   'markdown:presentation:pageBreakCustomSeparator': undefined,
 };
@@ -190,6 +196,8 @@ export const defaultNotificationConfigs: { [key: string]: any } = {
 //     themeType: crowi.configManager.getConfig('crowi', 'customize:theme'),
 //     isEnabledLinebreaks: crowi.configManager.getConfig('markdown', 'markdown:isEnabledLinebreaks'),
 //     isEnabledLinebreaksInComments: crowi.configManager.getConfig('markdown', 'markdown:isEnabledLinebreaksInComments'),
+//     adminPreferredIndentSize: crowi.configManager.getConfig('markdown', 'markdown:adminPreferredIndentSize'),
+//     isIndentSizeForced: crowi.configManager.getConfig('markdown', 'markdown:isIndentSizeForced'),
 //     pageBreakSeparator: crowi.configManager.getConfig('markdown', 'markdown:presentation:pageBreakSeparator'),
 //     pageBreakCustomSeparator: crowi.configManager.getConfig('markdown', 'markdown:presentation:pageBreakCustomSeparator'),
 //     isEnabledXssPrevention: crowi.configManager.getConfig('markdown', 'markdown:xss:isEnabledPrevention'),
@@ -223,10 +231,11 @@ export const defaultNotificationConfigs: { [key: string]: any } = {
 //     isAclEnabled: crowi.aclService.isAclEnabled(),
 //     isSearchServiceConfigured: crowi.searchService.isConfigured,
 //     isSearchServiceReachable: crowi.searchService.isReachable,
+//     isMailerSetup: crowi.mailService.isMailerSetup,,
 //     globalLang: crowi.configManager.getConfig('crowi', 'app:globalLang'),
 //   };
 
 //   return localConfig;
 // };
 
-export default getOrCreateModel<Config>('Config', schema);
+export default getOrCreateModel<Config, ModelMethods>('Config', schema);

@@ -90,6 +90,7 @@ export default class MarkdownRenderer {
     });
 
     this.processor = rehype.use(rehype2react, {
+      passNode: true,
       createElement: React.createElement,
       components: {
         a: NextLink,

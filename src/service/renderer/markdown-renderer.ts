@@ -78,7 +78,7 @@ export default class MarkdownRenderer {
   //   }
   // }
 
-  init() {
+  init(): void {
     let parser = unified().use(parse);
     this.remarkPlugins.forEach((item) => {
       parser = applyPlugin(parser, item);

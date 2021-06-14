@@ -264,6 +264,34 @@ class SlackBotService extends S2sMessageHandlable {
             this.generateMarkdownSectionBlock('Create new page.'),
             this.generateInputSectionBlock('path', 'Path', 'path_input', false, '/path'),
             this.generateInputSectionBlock('contents', 'Contents', 'contents_input', true, 'Input with Markdown...'),
+            {
+              type: 'input',
+              block_id: 'note02',
+              label: {
+                type: 'plain_text',
+                text: 'Color',
+              },
+              element: {
+                type: 'static_select',
+                action_id: 'color',
+                options: [
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'yellow',
+                    },
+                    value: 'yellow',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'blue',
+                    },
+                    value: 'blue',
+                  },
+                ],
+              },
+            },
           ],
         },
       });

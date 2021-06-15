@@ -269,16 +269,16 @@ class SlackBotService extends S2sMessageHandlable {
               block_id: 'note02',
               label: {
                 type: 'plain_text',
-                text: 'Color',
+                text: 'GROWI App',
               },
               element: {
                 type: 'static_select',
-                action_id: 'color',
+                action_id: 'growi_app',
                 options: [
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'yellow',
+                      text: 'hoge',
                     },
                     value: 'yellow',
                   },

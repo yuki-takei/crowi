@@ -18,7 +18,8 @@ import { OrderRepository } from '~/repositories/order';
 import { AddSigningSecretToReq } from '~/middlewares/slack-to-growi/add-signing-secret-to-req';
 import { AuthorizeCommandMiddleware, AuthorizeInteractionMiddleware } from '~/middlewares/slack-to-growi/authorizer';
 import { InstallerService } from '~/services/InstallerService';
-import { RegisterService } from '~/services/RegisterService';
+import { RegisterService, RegisterService } from '~/services/RegisterService';
+
 import { UnregisterService } from '~/services/UnregisterService';
 import { InvalidUrlError } from '../models/errors';
 import loggerFactory from '~/utils/logger';
@@ -129,9 +130,14 @@ export class SlackCtrl {
       });
     }
 
+    // select
+    await this.selectService.hoge(this.orderRepository, installation, authorizeResult.botToken);
+    console.log('relationhogehoge', relations);
+
     // Send response immediately to avoid opelation_timeout error
     // See https://api.slack.com/apis/connections/events-api#the-events-api__responding-to-events
     res.send();
+
 
     /*
      * forward to GROWI server
@@ -214,6 +220,8 @@ export class SlackCtrl {
      * forward to GROWI server
      */
     const relations = await this.relationRepository.find({ installation });
+
+    console.log('relationshoge', relations);
 
     const promises = relations.map((relation: Relation) => {
       // generate API URL

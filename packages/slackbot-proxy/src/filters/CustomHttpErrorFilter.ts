@@ -8,11 +8,16 @@ import { CustomHttpError } from '~/models/errors';
 export class CustomHttpErrorFilter implements ExceptionFilterMethods {
 
   async catch(exception: CustomHttpError, ctx: PlatformContext): Promise<PlatformResponse<any>> {
+    const { httpError } = exception;
     const { response } = ctx;
 
     return response
-      .status(exception.httpError.status)
-      .body({ title: 'CustomHttpError catched.', httpError: exception.httpError });
+      .status(httpError.status)
+      .body({
+        title: 'CustomHttpError catched by CustomHttpErrorFilter.',
+        status: httpError.status,
+        message: httpError.message,
+      });
   }
 
 }

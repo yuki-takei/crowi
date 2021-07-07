@@ -3,6 +3,7 @@ import {
 } from '@tsed/common';
 
 import createError from 'http-errors';
+
 import { CustomHttpError } from '~/models/errors';
 import { InstallerService } from '~/services/InstallerService';
 
@@ -14,6 +15,11 @@ const middleware3 = () => {
 const middleware4 = () => {
   throw new CustomHttpError(createError(404, 'Resource 4 does not exist!'));
 };
+
+const middleware5 = (req, res, next) => {
+  return next(createError(404, 'Resource 5 does not exist!'));
+};
+
 
 @Controller('/http-errors-test')
 export class TopCtrl {
@@ -40,6 +46,12 @@ export class TopCtrl {
   @Get('/4')
   @UseBefore(middleware4)
   async testCustomHttpError4(): Promise<any> {
+    return true;
+  }
+
+  @Get('/5')
+  @UseBefore(middleware5)
+  async testCustomHttpError5(): Promise<any> {
     return true;
   }
 

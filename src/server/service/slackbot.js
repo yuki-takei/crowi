@@ -2,7 +2,7 @@
 const logger = require('@alias/logger')('growi:service:SlackBotService');
 const mongoose = require('mongoose');
 const axios = require('axios');
-const { formatDistanceStrict } = require('date-fns');
+const { formatDistanceStrict, parse, getTime } = require('date-fns');
 
 const PAGINGLIMIT = 10;
 
@@ -94,12 +94,19 @@ class SlackBotService extends S2sMessageHandlable {
   }
 
   async togetterCommand(client, body, args, limit = 10) {
-    // TODO GW-6721 Get the time from args
+
+    let latest;
+    if (args[1] != null) {
+      latest = getTime(parse(args[1], 'HH:mm', new Date()), { locale: 'ja' });
+    }
     const reusult = await client.conversations.history({
       channel: body.channel_id,
       limit,
+      latest,
     });
     console.log(reusult);
+    console.log(latest);
+    // console.log(reusult);
     // TODO GW-6712 display checkbox using result
     const message = '*togetterCommand*';
     client.chat.postEphemeral({

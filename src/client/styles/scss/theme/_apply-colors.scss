@@ -228,12 +228,12 @@ ul.pagination {
       @include override-hexagon-color($color-resize-button-hover, $bgcolor-resize-button-hover);
     }
   }
-  div[data-testid='GlobalNavigation'] {
+  div.grw-global-navigation {
     > div {
       background-color: $bgcolor-sidebar;
     }
   }
-  div[data-testid='ContextualNavigation'] {
+  div.grw-contextual-navigation {
     > div {
       color: $color-sidebar-context;
       background-color: $bgcolor-sidebar-context;

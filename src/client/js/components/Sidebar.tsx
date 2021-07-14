@@ -1,9 +1,10 @@
 import dynamic from 'next/dynamic';
-import React, { useCallback, useEffect } from 'react';
+import React, {
+  useCallback, useEffect, useRef, useState,
+} from 'react';
 
 import {
   withNavigationUIController,
-  LayoutManager,
   NavigationProvider,
   ThemeProvider,
 } from '@atlaskit/navigation-next';
@@ -15,7 +16,8 @@ import {
 import SidebarNav from './Sidebar/SidebarNav';
 
 const sidebarDefaultWidth = 320;
-
+const sidebarMinWidth = 240;
+const sidebarMinimizeWidth = 20;
 
 type GlobalNavigationProps = {
   navigationUIController: any, // UIController from @atlaskit/navigation-next
@@ -169,6 +171,91 @@ const Sidebar = (props: Props) => {
     toggleDrawerMode(isDrawerMode);
   }, [isDrawerMode, toggleDrawerMode]);
 
+  const [isHover, setHover] = useState(false);
+  const [isDragging, setDrag] = useState(false);
+  // TODO global state
+  const [sidebarWidthCached, setSidebarWidthCached] = useState(sidebarDefaultWidth);
+
+  const resizableContainer = useRef<HTMLDivElement>(null);
+  const setContentWidth = useCallback((newWidth) => {
+    if (resizableContainer.current == null) {
+      return;
+    }
+    resizableContainer.current.style.width = `${newWidth}px`;
+  }, []);
+
+  const hoverHandler = useCallback((isHover: boolean) => {
+    if (!navigationUIController.state.isCollapsed) {
+      return;
+    }
+
+    setHover(isHover);
+
+    if (isHover) {
+      setContentWidth(sidebarWidthCached);
+    }
+    if (!isHover) {
+      setContentWidth(sidebarMinimizeWidth);
+    }
+  }, [navigationUIController.state.isCollapsed, sidebarWidthCached, setContentWidth]);
+
+  const toggleNavigationBtnClickHandler = useCallback(() => {
+    navigationUIController.toggleCollapse();
+  }, [navigationUIController]);
+
+  useEffect(() => {
+    if (navigationUIController.state.isCollapsed) {
+      setContentWidth(sidebarMinimizeWidth);
+    }
+    else {
+      setContentWidth(sidebarWidthCached);
+    }
+  }, [navigationUIController.state.isCollapsed, sidebarWidthCached, setContentWidth]);
+
+  const draggableAreaMoveHandler = useCallback((event) => {
+    if (isDragging) {
+      event.preventDefault();
+      const newWitdh = event.pageX - 60;
+      if (resizableContainer.current != null) {
+        setContentWidth(newWitdh);
+        resizableContainer.current.classList.add('dragging');
+      }
+    }
+  }, [isDragging, setContentWidth]);
+
+  const dragableAreaMouseUpHandler = useCallback(() => {
+    if (resizableContainer.current == null) {
+      return;
+    }
+
+    setDrag(false);
+
+    if (resizableContainer.current.clientWidth < sidebarMinWidth) {
+      setSidebarWidthCached(sidebarMinWidth);
+      navigationUIController.collapse();
+      setContentWidth(sidebarMinimizeWidth);
+    }
+    else {
+      setSidebarWidthCached(resizableContainer.current.clientWidth);
+    }
+    resizableContainer.current.classList.remove('dragging');
+
+    document.removeEventListener('mousemove', draggableAreaMoveHandler);
+    document.removeEventListener('mouseup', dragableAreaMouseUpHandler);
+
+  }, [navigationUIController, draggableAreaMoveHandler, setContentWidth]);
+
+  const dragableAreaClickHandler = useCallback(() => {
+    if (navigationUIController.state.isCollapsed) {
+      return;
+    }
+    setDrag(true);
+  }, [navigationUIController.state.isCollapsed]);
+
+  useEffect(() => {
+    document.addEventListener('mousemove', draggableAreaMoveHandler);
+    document.addEventListener('mouseup', dragableAreaMouseUpHandler);
+  }, [draggableAreaMoveHandler, dragableAreaMouseUpHandler]);
 
   return (
     <>
@@ -179,18 +266,66 @@ const Sidebar = (props: Props) => {
             context: 'product',
           })}
         >
-          <LayoutManager
-            globalNavigation={GlobalNavigation}
-            productNavigation={() => null}
-            containerNavigation={SidebarContents}
-            experimental_hideNavVisuallyOnCollapse
-            experimental_flyoutOnHover
-            experimental_alternateFlyoutBehaviour
-            experimental_fullWidthFlyout
-            shouldHideGlobalNavShadow
-            showContextualNavigation
-          >
-          </LayoutManager>
+          <div className="data-layout-container">
+            <div className="navigation">
+              <div className="grw-navigation-wrap">
+                <div className="grw-global-navigation">
+                  <GlobalNavigation></GlobalNavigation>
+                </div>
+                <div
+                  ref={resizableContainer}
+                  className="grw-contextual-navigation"
+                  onMouseEnter={() => hoverHandler(true)}
+                  onMouseLeave={() => hoverHandler(false)}
+                  onMouseMove={draggableAreaMoveHandler}
+                  onMouseUp={dragableAreaMouseUpHandler}
+                >
+                  <div className="grw-contextual-navigation-child">
+                    <div role="group" className="grw-contextual-navigation-sub"></div>
+                  </div>
+                  <div className="grw-contextual-navigation-child2">
+                    <div role="group" className={`grw-contextual-navigation-sub ${!isHover && navigationUIController.state.isCollapsed ? 'collapsed' : ''}`}>
+                      <SidebarContents></SidebarContents>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="grw-navigation-draggable">
+                <div className="grw-navigation-draggable-sub"></div>
+                <div
+                  className="grw-navigation-draggable-hitarea"
+                  onMouseDown={dragableAreaClickHandler}
+                >
+                  <div className="grw-navigation-draggable-hitarea-child"></div>
+                </div>
+                <div>
+                  <div>
+                    <button
+                      className={`ak-navigation-resize-button ${navigationUIController.state.isCollapsed ? 'collapse-state' : 'normal-state'} `}
+                      type="button"
+                      aria-expanded="true"
+                      aria-label="Toggle navigation"
+                      onClick={toggleNavigationBtnClickHandler}
+                    >
+                      <div className="css-z8pkji"></div>
+                      <span role="presentation" className="sc-AxjAm jMDUxe">
+                        <svg width="24" height="24" viewBox="0 0 24 24" focusable="false" role="presentation">
+                          <path
+                            d="M13.706 9.698a.988.988 0 0 0 0-1.407
+                             1.01 1.01 0 0 0-1.419 0l-2.965 2.94a1.09 1.09 0 0 0 0 1.548l2.955
+                             2.93a1.01 1.01 0 0 0 1.42 0 .988.988 0 0 0 0-1.407l-2.318-2.297 2.327-2.307z"
+                            fill="currentColor"
+                            fillRule="evenodd"
+                          >
+                          </path>
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </ThemeProvider>
       </div>
 

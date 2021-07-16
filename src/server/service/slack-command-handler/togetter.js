@@ -1,5 +1,5 @@
 const { BlockKitBuilder: B } = require('@growi/slack');
-const { getTime, parse } = require('date-fns');
+const { parse } = require('date-fns');
 
 module.exports = () => {
   const BaseSlackCommandHandler = require('./slack-command-handler');
@@ -9,15 +9,16 @@ module.exports = () => {
 
     let latest;
     if (args[1] != null) {
-      latest = getTime(parse(args[1], 'HH:mm', new Date()), { locale: 'ja' });
+      latest = parse(args[1], 'HH:mm', new Date());
     }
     const reusult = await client.conversations.history({
       channel: body.channel_id,
       limit,
       latest,
     });
-    console.log(reusult);
-    console.log(latest);
+    console.log(19, reusult);
+    console.log(20, parse(args[1], 'HH:mm', new Date()), parse(args[1], 'HH:mm', new Date()));
+
     // console.log(reusult);
     // TODO GW-6712 display checkbox using result
     const message = '*togetterCommand*';

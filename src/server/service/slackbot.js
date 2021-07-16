@@ -93,33 +93,6 @@ class SlackBotService extends S2sMessageHandlable {
     return;
   }
 
-  async togetterCommand(client, body, args, limit = 10) {
-
-    let latest;
-    if (args[1] != null) {
-      latest = getTime(parse(args[1], 'HH:mm', new Date()), { locale: 'ja' });
-    }
-    const reusult = await client.conversations.history({
-      channel: body.channel_id,
-      limit,
-      latest,
-    });
-    console.log(reusult);
-    console.log(latest);
-    // console.log(reusult);
-    // TODO GW-6712 display checkbox using result
-    const message = '*togetterCommand*';
-    client.chat.postEphemeral({
-      channel: body.channel_id,
-      user: body.user_id,
-      text: 'togetter',
-      blocks: [
-        this.generateMarkdownSectionBlock(message),
-      ],
-    });
-    return;
-  }
-
   generatePageLinkMrkdwn(pathname, href) {
     return `<${decodeURI(href)} | ${decodeURI(pathname)}>`;
   }

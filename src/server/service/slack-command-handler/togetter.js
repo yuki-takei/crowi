@@ -2,6 +2,7 @@ const { getUnixTime, parse } = require('date-fns');
 const {
   inputBlock, actionsBlock, buttonElement, checkboxesElementOption,
 } = require('@growi/slack');
+const { fromUnixTime, format } = require('date-fns');
 
 module.exports = () => {
   const BaseSlackCommandHandler = require('./slack-command-handler');
@@ -12,12 +13,12 @@ module.exports = () => {
     if (args[1] != null) {
       latest = getUnixTime(parse(args[1], 'HH:mm', new Date()));
     }
-    const reusult = await client.conversations.history({
+    const result = await client.conversations.history({
       channel: body.channel_id,
       limit,
       latest,
     });
-    console.log(reusult);
+    console.log(result);
     console.log(20, parse(args[1], 'HH:mm', new Date()), getUnixTime(parse(args[1], 'HH:mm', new Date())));
 
     // Return Checkbox Message
@@ -25,36 +26,38 @@ module.exports = () => {
       channel: body.channel_id,
       user: body.user_id,
       text: 'Select messages to use.',
-      blocks: this.togetterMessageBlocks(),
+      blocks: this.togetterMessageBlocks(result.messages, body, args, limit),
     });
     return;
   };
 
-  handler.togetterMessageBlocks = function() {
+  handler.togetterMessageBlocks = function(messages, body, args, limit) {
     return [
-      inputBlock(this.togetterCheckboxesElement(), 'selected_messages', 'Select massages to use.'),
-      actionsBlock(buttonElement('Show more', 'togetterShowMore')),
+      inputBlock(this.togetterCheckboxesElement(messages), 'selected_messages', 'Select massages to use.'),
+      actionsBlock(buttonElement({ text: 'Show more', actionId: 'togetterShowMore', value: JSON.stringify({ body, args, limit }) })),
       inputBlock(this.togetterInputBlockElement('page_path', '/'), 'page_path', 'Page path'),
-      actionsBlock(buttonElement('Cancel', 'togetterCancelPageCreation'), buttonElement('Create page', 'togetterCreatePage', 'primary')),
+      actionsBlock(
+        buttonElement({ text: 'Cancel', actionId: 'togetterCancelPageCreation' }),
+        buttonElement({ text: 'Create page', actionId: 'togetterCreatePage', color: 'primary' }),
+      ),
     ];
   };
 
-  handler.togetterCheckboxesElement = function() {
+  handler.togetterCheckboxesElement = function(messages) {
     return {
       type: 'checkboxes',
-      options: this.togetterCheckboxesElementOptions(),
+      options: this.togetterCheckboxesElementOptions(messages),
       action_id: 'checkboxes_changed',
     };
   };
 
-  handler.togetterCheckboxesElementOptions = function() {
-    // increment options with results from conversations.history
-    const options = [];
-    // temporary code
-    for (let i = 0; i < 10; i++) {
-      const option = checkboxesElementOption('*username*  12:00PM', 'sample slack messages ... :star:', `selected-${i}`);
-      options.push(option);
-    }
+  handler.togetterCheckboxesElementOptions = function(messages) {
+    const options = messages
+      .sort((a, b) => { return a.ts - b.ts })
+      .map((message, index) => {
+        const date = fromUnixTime(message.ts);
+        return checkboxesElementOption(`*${message.user}*  ${format(new Date(date), 'yyyy/MM/dd HH:mm:ss')}`, message.text, `selected-${index}`);
+      });
     return options;
   };
 
